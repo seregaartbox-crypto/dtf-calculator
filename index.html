@@ -135,7 +135,6 @@
             color: white;
         }
 
-        /* Стили для изображения */
         .image-upload-container {
             margin-bottom: 15px;
             text-align: center;
@@ -384,19 +383,67 @@
             text-align: center;
         }
 
+        /* --- СТИЛИ ДЛЯ ПЕЧАТИ / PDF --- */
         @media print {
-            body { background: white; padding: 0; }
-            .swap-btn, .small-btn, .efficiency-badge, .visual-label, .visual-container, .section-divider, .add-btn-container, .remove-card-btn, .extra-tools, .hint, .raw-data-toggle, .clear-price-btn { 
+            body { background: white; padding: 10px; font-size: 12px; }
+            .container { max-width: 100%; }
+            
+            /* Скрываем всё лишнее */
+            .small-btn, .efficiency-badge, .visual-label, .visual-container, 
+            .section-divider, .add-btn-container, .remove-card-btn, .extra-tools, 
+            .hint, .raw-data-toggle, .clear-price-btn, .tech-settings,
+            .image-upload-container > label { 
                 display: none !important; 
             }
-            .image-preview { border: 1px solid #eee !important; height: 100px !important; }
+
+            /* Компактная главная карточка */
+            .card { box-shadow: none; border: 1px solid #eee; margin-bottom: 10px; padding: 10px; }
+            .total-card { background: #f8fafc !important; color: #1e293b !important; border: 2px solid #2563eb; }
+            .total-card span { color: #2563eb; }
+            .meter-price-input { border: none !important; width: auto !important; }
+
+            /* Сетка принтов: по одному на строку для читаемости */
+            .prints-grid { display: block; }
+            .print-card { 
+                margin-bottom: 15px; 
+                border: 1px solid #e2e8f0; 
+                background: white;
+                display: flex; 
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+            .print-card-header { width: 100%; margin-bottom: 5px; }
+            
+            /* Логотип в PDF - делаем крупнее */
+            .image-upload-container { 
+                flex: 0 0 200px; 
+                margin: 0; 
+            }
+            .image-preview { 
+                height: 200px !important; 
+                width: 200px !important;
+                border: 1px solid #e2e8f0 !important; 
+            }
             .image-preview span { display: none; }
-            .card { box-shadow: none; border: 1px solid #eee; margin-bottom: 10px; }
-            .total-card { background: #eee !important; color: black !important; border: 2px solid #000; }
-            input { border: none !important; padding: 2px !important; font-weight: bold; background: transparent; }
-            h1 { font-size: 20px; margin-bottom: 10px; }
-            .print-title-input { border-bottom: 1px solid #ccc !important; }
-            .editable-price, .meter-price-input { border: none !important; padding: 2px 0 !important; }
+
+            /* Блок с параметрами справа от логотипа */
+            .print-card-body { 
+                flex: 1; 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: space-between;
+            }
+            
+            .input-row, .print-card-body > div { margin-bottom: 5px !important; }
+            .results { background: #f0f9ff; padding: 8px; margin-top: 5px; }
+            
+            input { border: none !important; padding: 0 !important; font-weight: bold; background: transparent !important; }
+            .print-title-input { border-bottom: 1px solid #eee !important; font-size: 16px; }
+            
+            /* Скрываем подробности расчета, оставляем только итоги */
+            .res-row-info, .res-rows-count-info, .raw-data-panel:not(.printing-active) { 
+                display: none !important; 
+            }
         }
     </style>
 </head>
@@ -481,13 +528,11 @@
     let printCounter = 0;
     let activeCardId = null;
 
-    // Глобальный слушатель вставки (Ctrl + V)
     document.addEventListener('paste', function(e) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (const item of items) {
             if (item.type.indexOf("image") !== -1) {
                 const blob = item.getAsFile();
-                // Если нет активной карточки, берем последнюю или первую
                 const targetId = activeCardId || (printCounter > 0 ? printCounter : null);
                 if (targetId) {
                     insertImageToCard(targetId, blob);
@@ -590,9 +635,7 @@
     }
 
     function setActiveCard(id) {
-        // Убираем подсветку со всех
         document.querySelectorAll('.print-card').forEach(c => c.classList.remove('active-focus'));
-        // Добавляем текущему
         activeCardId = id;
         const activeCard = document.getElementById(`card${id}`);
         if (activeCard) activeCard.classList.add('active-focus');
@@ -606,7 +649,6 @@
         card.className = 'print-card empty-print';
         card.id = `card${id}`;
         
-        // Устанавливаем активность при клике на любое поле внутри карточки
         card.addEventListener('click', () => setActiveCard(id));
         card.addEventListener('focusin', () => setActiveCard(id));
 
@@ -616,16 +658,16 @@
                 <button class="remove-card-btn" onclick="removePrint(${id})" title="Удалить принт">×</button>
             </div>
             
-            <div class="print-card-body">
-                <div class="image-upload-container">
-                    <label>Макет (Ctrl+V или клик)</label>
-                    <div class="image-preview" id="preview${id}" onclick="document.getElementById('file${id}').click()">
-                        <span>Нажмите или вставьте (Ctrl+V)</span>
-                    </div>
-                    <input type="file" id="file${id}" class="file-input" accept="image/*" onchange="handleImage(${id})">
+            <div class="image-upload-container">
+                <label>Макет (Ctrl+V или клик)</label>
+                <div class="image-preview" id="preview${id}" onclick="document.getElementById('file${id}').click()">
+                    <span>Нажмите или вставьте (Ctrl+V)</span>
                 </div>
+                <input type="file" id="file${id}" class="file-input" accept="image/*" onchange="handleImage(${id})">
+            </div>
 
-                <div style="margin-bottom: 15px;">
+            <div class="print-card-body">
+                <div>
                     <label>Расположение на изделии</label>
                     <input type="text" id="pos${id}" placeholder="Например: Грудь слева" style="font-size: 14px; padding: 6px 10px;">
                 </div>
@@ -645,7 +687,7 @@
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div>
                         <label>Количество (шт)</label>
                         <input type="number" id="q${id}" placeholder="0" oninput="calculate()">
@@ -695,7 +737,7 @@
             </div>
         `;
         container.appendChild(card);
-        setActiveCard(id); // Сразу делаем новую карточку активной
+        setActiveCard(id);
     }
 
     function swap(id) {
