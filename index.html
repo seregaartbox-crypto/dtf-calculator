@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор ДТФ Печати</title>
+    <style>
+        :root {
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --primary: #2563eb;
+            --text: #1f2937;
+            --border: #e5e7eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary);
+        }
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .hint {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            background: #d1d5db;
+            color: #374151;
+            border-radius: 50%;
+            font-size: 11px;
+            cursor: help;
+            margin-left: 5px;
+            vertical-align: middle;
+            position: relative;
+        }
+        .hint:hover::after {
+            content: attr(data-title);
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #374151;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            width: 200px;
+            z-index: 100;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            font-weight: normal;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        .section-divider {
+            grid-column: 1 / -1;
+            height: 1px;
+            background: var(--border);
+            margin: 5px 0;
+        }
+        .prints-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .print-card {
+            border: 2px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+            background: #fafafa;
+            position: relative;
+            page-break-inside: avoid;
+        }
+        .print-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+        }
+        .print-title-input {
+            font-size: 1.17em;
+            font-weight: bold;
+            color: var(--primary);
+            border: none;
+            background: transparent;
+            width: 80%;
+            padding: 0;
+        }
+        .remove-card-btn {
+            background: #fee2e2;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 20px;
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .remove-card-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .input-group {
+            flex: 1;
+        }
+        .action-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .small-btn {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 4px;
+            width: 32px;
+            height: 24px;
+            cursor: pointer;
+            color: var(--primary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .small-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        .add-btn-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .add-btn {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .results {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e0f2fe;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .results div {
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .raw-data-toggle {
+            display: block;
+            width: 100%;
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 11px;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .raw-data-panel {
+            display: none;
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 5px;
+            font-size: 11px;
+            color: #64748b;
+        }
+        .raw-use-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 8px;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 5px;
+            color: var(--text);
+            font-weight: bold;
+        }
+        .raw-use-row input {
+            width: auto;
+            margin: 0;
+        }
+
+        .efficiency-badge {
+            margin: 10px 0;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .optimal { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .suboptimal { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+
+        .visual-label {
+            display: block;
+            font-size: 11px;
+            margin-top: 15px;
+            color: #666;
+            font-weight: bold;
+        }
+        .visual-container {
+            margin-top: 5px;
+            background: #e5e7eb;
+            height: 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 2px;
+            overflow: hidden;
+            border: 1px solid #ccc;
+        }
+        .viz-logo { background: var(--primary); height: 20px; margin-right: 2px; border-radius: 2px; min-width: 1px; }
+        .viz-empty { flex-grow: 1; text-align: right; font-size: 10px; color: #4b5563; padding-right: 5px; white-space: nowrap; }
+
+        .total-card { background: var(--primary); color: white; text-align: center; font-size: 18px; }
+        .total-card span { font-size: 24px; font-weight: bold; }
+        .error { color: var(--danger); font-weight: bold; font-size: 12px; margin-top: 5px; display: none; }
+
+        .extra-tools {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .tool-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tool-btn:hover { background: rgba(255,255,255,0.3); }
+        .tool-btn.active { background: white; color: var(--primary); font-weight: bold; }
+        
+        .tool-input-wrapper {
+            margin-top: 10px;
+            display: none;
+        }
+        .tool-input-wrapper label { color: white; font-weight: normal; margin-bottom: 2px; }
+        .tool-input-wrapper input { 
+            background: white; 
+            color: var(--text); 
+            text-align: center; 
+            padding: 5px; 
+            height: 34px;
+        }
+
+        .price-input-container {
+            position: relative;
+            display: inline-block;
+        }
+        .editable-price {
+            background: #fff;
+            color: var(--primary) !important;
+            font-weight: bold;
+            border: 1px solid #bae6fd;
+            width: 100px !important;
+            padding: 2px 22px 2px 5px !important;
+            height: 28px !important;
+            font-size: 14px !important;
+            text-align: right;
+        }
+        .clear-price-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            display: none;
+            line-height: 1;
+        }
+        .clear-price-btn:hover { color: var(--danger); }
+
+        .meter-price-input {
+            width: 100px;
+            margin-top: 5px;
+            color: var(--primary);
+            font-weight: bold;
+            text-align: center;
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .swap-btn, .small-btn, .efficiency-badge, .visual-label, .visual-container, .section-divider, .add-btn-container, .remove-card-btn, .extra-tools, .hint, .raw-data-toggle, .clear-price-btn { 
+                display: none !important; 
+            }
+            .raw-data-panel:not(.printing-active) {
+                display: none !important;
+            }
+            .tech-settings, .res-row-info, .res-rows-count-info, .empty-print {
+                display: none !important;
+            }
+            .card { box-shadow: none; border: 1px solid #eee; margin-bottom: 10px; }
+            .total-card { background: #eee !important; color: black !important; border: 2px solid #000; }
+            input { border: none !important; padding: 2px !important; font-weight: bold; background: transparent; }
+            h1 { font-size: 20px; margin-bottom: 10px; }
+            .print-title-input { border-bottom: 1px solid #ccc !important; }
+            .editable-price, .meter-price-input { border: none !important; padding: 2px 0 !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Калькулятор ДТФ Печати</h1>
+
+    <div class="card">
+        <div class="settings-grid">
+            <div style="grid-column: span 2;">
+                <label>Клиент / Заказчик</label>
+                <input type="text" id="clientName" placeholder="Введите имя клиента...">
+            </div>
+            <div style="grid-column: span 2;">
+                <label>Название логотипа / Заказа</label>
+                <input type="text" id="orderTitle" placeholder="Например: Мерч Компании...">
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="tech-settings">
+                <label>Ширина пленки (см) <span class="hint" data-title="Максимальная рабочая область пленки. Влияет на то, сколько логотипов поместится в один ряд.">?</span></label>
+                <input type="number" id="filmWidth" value="57" oninput="calculate()">
+            </div>
+            <div class="tech-settings">
+                <label>Отступ X (мм) <span class="hint" data-title="Зазор между логотипами по горизонтали для удобства резки.">?</span></label>
+                <input type="number" id="gapX" value="4" oninput="calculate()">
+            </div>
+            <div class="tech-settings">
+                <label>Отступ Y (мм) <span class="hint" data-title="Зазор между рядами логотипов по вертикали.">?</span></label>
+                <input type="number" id="gapY" value="4" oninput="calculate()">
+            </div>
+        </div>
+    </div>
+
+    <div class="card total-card">
+        <div class="settings-grid">
+            <div>Общий метраж: <br><span id="totalMeters">0.00</span> м</div>
+            <div>
+                Цена за 1 метр (₽): <span class="hint" data-title="Автоматически берется из таблицы цен. Можно вписать свою цену, чтобы зафиксировать её. Сброс — удалить число.">?</span> <br>
+                <input type="number" id="manualMeterPrice" class="meter-price-input" placeholder="Авто" oninput="calculate()">
+            </div>
+            <div>Итого за печать: <br><span id="totalCost">0</span> ₽</div>
+            <div>Итого с переносом: <br><span id="totalCostWithTransfer">0</span> ₽</div>
+        </div>
+        
+        <div class="extra-tools">
+            <button id="btnDiscount" class="tool-btn" onclick="toggleTool('discount')">% Скидка на шт.</button>
+            <button id="btnMarkup" class="tool-btn" onclick="toggleTool('markup')">% Наценка на шт.</button>
+        </div>
+
+        <div class="settings-grid">
+            <div id="wrapperDiscount" class="tool-input-wrapper">
+                <label>Скидка на 1 шт (%) <span class="hint" data-title="Уменьшает цену изделия. Чтобы отключить и сбросить скидку, нажмите кнопку «% Скидка» еще раз.">?</span></label>
+                <input type="number" id="discountValue" value="0" oninput="calculate()">
+            </div>
+            <div id="wrapperMarkup" class="tool-input-wrapper">
+                <label>Наценка на 1 шт (%) <span class="hint" data-title="Увеличивает цену изделия. Чтобы отключить и сбросить наценку, нажмите кнопку «% Наценка» еще раз.">?</span></label>
+                <input type="number" id="markupValue" value="0" oninput="calculate()">
+            </div>
+        </div>
+    </div>
+
+    <div class="prints-grid" id="printsContainer"></div>
+
+    <div class="add-btn-container">
+        <button class="add-btn" onclick="addNewPrint()">+ Добавить еще принт</button>
+    </div>
+</div>
+
+<script>
+    const priceTable = [
+        { min: 500, price: 630 }, { min: 200, price: 683 }, { min: 100, price: 735 },
+        { min: 50,  price: 840 }, { min: 40,  price: 893 }, { min: 30,  price: 945 },
+        { min: 20,  price: 998 }, { min: 10,  price: 1050 }, { min: 9,   price: 1103 },
+        { min: 8,   price: 1155 }, { min: 7,   price: 1208 }, { min: 6,   price: 1260 },
+        { min: 5,   price: 1313 }, { min: 4,   price: 1365 }, { min: 3,   price: 1418 },
+        { min: 2,   price: 1470 }, { min: 0,   price: 1575 }
+    ];
+
+    let printCounter = 0;
+
+    function toggleTool(type) {
+        const wrapper = type === 'discount' ? document.getElementById('wrapperDiscount') : document.getElementById('wrapperMarkup');
+        const btn = type === 'discount' ? document.getElementById('btnDiscount') : document.getElementById('btnMarkup');
+        const input = type === 'discount' ? document.getElementById('discountValue') : document.getElementById('markupValue');
+        
+        if (wrapper.style.display === 'block') {
+            wrapper.style.display = 'none';
+            btn.classList.remove('active');
+            input.value = 0; 
+        } else {
+            wrapper.style.display = 'block';
+            btn.classList.add('active');
+        }
+        calculate();
+    }
+
+    function toggleRawPanel(id) {
+        const panel = document.getElementById(`rawPanel${id}`);
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function removePrint(id) {
+        const card = document.getElementById(`card${id}`);
+        if (card) {
+            card.remove();
+            calculate();
+        }
+    }
+
+    function clearPrice(id) {
+        const input = document.getElementById(`resItemCost${id}`);
+        input.value = "";
+        input.removeAttribute('data-manual');
+        calculate();
+    }
+
+    function toggleLock(id) {
+        const btn = document.getElementById(`lock${id}`);
+        const w = Number(document.getElementById(`w${id}`).value) || 0;
+        const h = Number(document.getElementById(`h${id}`).value) || 0;
+        
+        if (btn.classList.contains('active')) {
+            btn.classList.remove('active');
+            btn.innerText = "🔓";
+            btn.removeAttribute('data-ratio');
+        } else {
+            if (w > 0 && h > 0) {
+                btn.classList.add('active');
+                btn.innerText = "🔒";
+                btn.setAttribute('data-ratio', w / h);
+            }
+        }
+    }
+
+    function handleProportions(id, source) {
+        const btn = document.getElementById(`lock${id}`);
+        if (!btn.classList.contains('active')) {
+            calculate();
+            return;
+        }
+        
+        const ratio = Number(btn.getAttribute('data-ratio'));
+        const wInput = document.getElementById(`w${id}`);
+        const hInput = document.getElementById(`h${id}`);
+        
+        if (source === 'w') {
+            const newW = Number(wInput.value) || 0;
+            hInput.value = (newW / ratio).toFixed(1);
+        } else {
+            const newH = Number(hInput.value) || 0;
+            wInput.value = (newH * ratio).toFixed(1);
+        }
+        calculate();
+    }
+
+    function addNewPrint() {
+        printCounter++;
+        const id = printCounter;
+        const container = document.getElementById('printsContainer');
+        const card = document.createElement('div');
+        card.className = 'print-card empty-print';
+        card.id = `card${id}`;
+        card.innerHTML = `
+            <div class="print-card-header">
+                <input type="text" class="print-title-input" value="Принт ${id}" placeholder="Название принта">
+                <button class="remove-card-btn" onclick="removePrint(${id})" title="Удалить принт">×</button>
+            </div>
+            
+            <div class="print-card-body">
+                <div style="margin-bottom: 15px;">
+                    <label>Расположение на изделии</label>
+                    <input type="text" id="pos${id}" placeholder="Например: Грудь слева" style="font-size: 14px; padding: 6px 10px;">
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Ширина (см)</label>
+                        <input type="number" id="w${id}" placeholder="0" oninput="handleProportions(${id}, 'w')">
+                    </div>
+                    <div class="action-btns">
+                        <button id="lock${id}" class="small-btn" onclick="toggleLock(${id})" title="Связать пропорции">🔓</button>
+                        <button class="small-btn" onclick="swap(${id})" title="Поменять местами">⇆</button>
+                    </div>
+                    <div class="input-group">
+                        <label>Высота (см)</label>
+                        <input type="number" id="h${id}" placeholder="0" oninput="handleProportions(${id}, 'h')">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label>Количество (шт)</label>
+                        <input type="number" id="q${id}" placeholder="0" oninput="calculate()">
+                    </div>
+                    <div>
+                        <label>Перенос (₽/шт)</label>
+                        <input type="number" id="transfer${id}" value="20" oninput="calculate()">
+                    </div>
+                </div>
+                
+                <div id="efficiency${id}" class="efficiency-badge" style="display:none"></div>
+                <div id="error${id}" class="error">Логотип шире пленки!</div>
+
+                <div class="results">
+                    <div class="res-row-info">Влезает в ряд: <strong id="resRow${id}">0 шт</strong></div>
+                    <div class="res-rows-count-info">Количество рядов: <strong id="resRowsCount${id}">0</strong></div>
+                    <div>Метраж: <strong id="resMeter${id}">0.00 м</strong></div>
+                    <hr style="border: 0; border-top: 1px solid #bae6fd; margin: 10px 0;">
+                    <div>Стоимость тиража: <strong id="resTotalCost${id}">0 ₽</strong></div>
+                    <div style="align-items: center;">
+                        <span>Цена за 1 шт:</span>
+                        <div class="price-input-container">
+                            <input type="number" id="resItemCost${id}" class="editable-price" placeholder="Авто" oninput="calculate()">
+                            <button class="clear-price-btn" id="clearBtn${id}" onclick="clearPrice(${id})" title="Вернуть авто-расчет">×</button>
+                        </div>
+                    </div>
+                    <div style="margin-top:5px; color: #0369a1; font-weight: bold;">
+                        <span>Цена с переносом:</span>
+                        <span id="resItemWithTransfer${id}">0 ₽</span>
+                    </div>
+
+                    <button class="raw-data-toggle" onclick="toggleRawPanel(${id})">Точные значения (без округления)</button>
+                    <div id="rawPanel${id}" class="raw-data-panel">
+                        <div>Точная цена/шт: <span id="rawItem${id}">0.0</span> ₽</div>
+                        <div>Точный итог: <span id="rawTotal${id}">0.00</span> ₽</div>
+                        <div class="raw-use-row">
+                            <input type="checkbox" id="useRaw${id}" onchange="calculate()"> 
+                            <label for="useRaw${id}" style="margin:0; font-size:11px;">Использовать для печати</label>
+                        </div>
+                    </div>
+                </div>
+
+                <span class="visual-label">Схема заполнения ряда:</span>
+                <div class="visual-container" id="viz${id}">
+                    <div class="viz-empty">Нет данных</div>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    }
+
+    function swap(id) {
+        const wInput = document.getElementById(`w${id}`);
+        const hInput = document.getElementById(`h${id}`);
+        const temp = wInput.value;
+        wInput.value = hInput.value;
+        hInput.value = temp;
+        
+        const btn = document.getElementById(`lock${id}`);
+        if (btn.classList.contains('active')) {
+            const w = Number(wInput.value) || 0;
+            const h = Number(hInput.value) || 0;
+            if (w > 0 && h > 0) {
+                btn.setAttribute('data-ratio', w / h);
+            }
+        }
+        calculate();
+    }
+
+    function calculate() {
+        const filmWidth = Number(document.getElementById('filmWidth').value) || 0;
+        const gapX = Number(document.getElementById('gapX').value) || 0;
+        const gapY = Number(document.getElementById('gapY').value) || 0;
+        const manualMeterInput = document.getElementById('manualMeterPrice');
+        
+        const discountPercent = Number(document.getElementById('discountValue').value) || 0;
+        const markupPercent = Number(document.getElementById('markupValue').value) || 0;
+
+        let totalMetersAll = 0;
+        const allCards = document.querySelectorAll('.print-card');
+
+        allCards.forEach(card => {
+            const id = card.id.replace('card', '');
+            const w = Number(document.getElementById(`w${id}`).value) || 0;
+            const h = Number(document.getElementById(`h${id}`).value) || 0;
+            const q = Number(document.getElementById(`q${id}`).value) || 0;
+
+            if (w > 0 && h > 0 && q > 0) {
+                const iPR = Math.floor(filmWidth / (w + (gapX / 10)));
+                if (iPR > 0) {
+                    const rows = Math.ceil(q / iPR);
+                    totalMetersAll += (rows * (h + (gapY / 10))) / 100;
+                }
+            }
+        });
+
+        let currentPricePerMeter;
+        if (manualMeterInput.value !== "" && !isNaN(manualMeterInput.value)) {
+            currentPricePerMeter = Number(manualMeterInput.value);
+        } else {
+            let tablePrice = 0;
+            for (let i = 0; i < priceTable.length; i++) {
+                if (totalMetersAll >= priceTable[i].min) {
+                    tablePrice = priceTable[i].price;
+                    break;
+                }
+            }
+            currentPricePerMeter = tablePrice;
+            manualMeterInput.placeholder = Math.ceil(tablePrice);
+        }
+
+        let totalPrintSum = 0;
+        let totalFullSum = 0;
+
+        allCards.forEach(card => {
+            const id = card.id.replace('card', '');
+            const w = Number(document.getElementById(`w${id}`).value) || 0;
+            const h = Number(document.getElementById(`h${id}`).value) || 0;
+            const q = Number(document.getElementById(`q${id}`).value) || 0;
+            const transPrice = Number(document.getElementById(`transfer${id}`).value) || 0;
+            
+            const errorDiv = document.getElementById(`error${id}`);
+            const effDiv = document.getElementById(`efficiency${id}`);
+            const vizDiv = document.getElementById(`viz${id}`);
+            const itemCostInput = document.getElementById(`resItemCost${id}`);
+            const clearBtn = document.getElementById(`clearBtn${id}`);
+            const useRawCheck = document.getElementById(`useRaw${id}`);
+            const rawPanel = document.getElementById(`rawPanel${id}`);
+
+            if (w > 0 && h > 0 && q > 0) {
+                card.classList.remove('empty-print');
+                const iPR1 = Math.floor(filmWidth / (w + (gapX / 10)));
+                const meters1 = iPR1 > 0 ? (Math.ceil(q / iPR1) * (h + (gapY / 10))) / 100 : Infinity;
+                const iPR2 = Math.floor(filmWidth / (h + (gapX / 10)));
+                const meters2 = iPR2 > 0 ? (Math.ceil(q / iPR2) * (w + (gapY / 10))) / 100 : Infinity;
+
+                if (iPR1 === 0 && iPR2 === 0) {
+                    errorDiv.style.display = "block";
+                    effDiv.style.display = "none";
+                    return;
+                }
+
+                errorDiv.style.display = "none";
+                effDiv.style.display = "block";
+                effDiv.innerText = meters2 < (meters1 - 0.001) ? `⚠ Поверните! Экономия: ${(meters1 - meters2).toFixed(2)} м` : "✓ Оптимальный расход";
+                effDiv.className = `efficiency-badge ${meters2 < (meters1 - 0.001) ? 'suboptimal' : 'optimal'}`;
+
+                const baseRawItemCost = (meters1 * currentPricePerMeter) / q;
+                const rawItemCostWithAdjustments = baseRawItemCost * (1 - discountPercent / 100) * (1 + markupPercent / 100);
+                const rawTotalPrint = rawItemCostWithAdjustments * q;
+
+                document.getElementById(`rawItem${id}`).innerText = rawItemCostWithAdjustments.toFixed(1);
+                document.getElementById(`rawTotal${id}`).innerText = rawTotalPrint.toFixed(2);
+
+                let finalItemCost;
+                
+                if (itemCostInput.getAttribute('data-manual') === 'true') {
+                    clearBtn.style.display = "block";
+                    finalItemCost = Number(itemCostInput.value);
+                    rawPanel.classList.remove('printing-active');
+                } else {
+                    clearBtn.style.display = "none";
+                    if (useRawCheck.checked) {
+                        finalItemCost = rawItemCostWithAdjustments;
+                        itemCostInput.value = rawItemCostWithAdjustments.toFixed(1);
+                        rawPanel.classList.add('printing-active');
+                    } else {
+                        // НОВАЯ ЛОГИКА ОКРУГЛЕНИЯ: Math.round округляет 0.5 вверх, 0.49 вниз
+                        finalItemCost = Math.round(rawItemCostWithAdjustments);
+                        itemCostInput.value = "";
+                        itemCostInput.placeholder = finalItemCost;
+                        rawPanel.classList.remove('printing-active');
+                    }
+                }
+
+                const finalPrintTotal = finalItemCost * q;
+                totalPrintSum += finalPrintTotal;
+                totalFullSum += (finalItemCost + transPrice) * q;
+
+                document.getElementById(`resRow${id}`).innerText = iPR1 + " шт";
+                document.getElementById(`resRowsCount${id}`).innerText = Math.ceil(q / iPR1);
+                document.getElementById(`resMeter${id}`).innerText = meters1.toFixed(2) + " м";
+                document.getElementById(`resTotalCost${id}`).innerText = finalPrintTotal.toFixed(2).replace(/\.00$/, '') + " ₽";
+                document.getElementById(`resItemWithTransfer${id}`).innerText = (finalItemCost + transPrice).toFixed(2).replace(/\.00$/, '') + " ₽";
+                drawVisualization(vizDiv, filmWidth, w, gapX/10, iPR1);
+            } else {
+                card.classList.add('empty-print');
+                errorDiv.style.display = "none";
+                effDiv.style.display = "none";
+            }
+        });
+
+        document.getElementById('totalMeters').innerText = totalMetersAll.toFixed(2);
+        document.getElementById('totalCost').innerText = totalPrintSum.toFixed(2).replace(/\.00$/, '');
+        document.getElementById('totalCostWithTransfer').innerText = totalFullSum.toFixed(2).replace(/\.00$/, '');
+    }
+
+    document.addEventListener('input', (e) => {
+        if (e.target.classList.contains('editable-price')) {
+            e.target.setAttribute('data-manual', 'true');
+            if (e.target.value === "") e.target.removeAttribute('data-manual');
+            calculate();
+        }
+    });
+
+    function drawVisualization(container, filmW, itemW, gap, count) {
+        if (!container) return;
+        container.innerHTML = '';
+        const itemPercent = (itemW / filmW) * 100;
+        for (let j = 0; j < count; j++) {
+            const logo = document.createElement('div');
+            logo.className = 'viz-logo';
+            logo.style.width = itemPercent + '%';
+            container.appendChild(logo);
+        }
+        const freeWidth = filmW - (count * (itemW + gap));
+        const empty = document.createElement('div');
+        empty.className = 'viz-empty';
+        empty.innerText = freeWidth > 0 ? `Ост: ${freeWidth.toFixed(1)} см` : 'Впритык';
+        container.appendChild(empty);
+    }
+
+    addNewPrint();
+    calculate();
+</script>
+</body>
+</html>
