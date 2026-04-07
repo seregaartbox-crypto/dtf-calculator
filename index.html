@@ -93,6 +93,11 @@
             background: #fafafa;
             position: relative;
             page-break-inside: avoid;
+            transition: border-color 0.2s;
+        }
+        .print-card.active-focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
         }
         .print-card-header {
             display: flex;
@@ -128,6 +133,37 @@
         .remove-card-btn:hover {
             background: var(--danger);
             color: white;
+        }
+
+        /* Стили для изображения */
+        .image-upload-container {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .image-preview {
+            width: 100%;
+            height: 120px;
+            border: 2px dashed var(--border);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #fff;
+            cursor: pointer;
+            position: relative;
+        }
+        .image-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .image-preview span {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .file-input {
+            display: none;
         }
 
         .input-row {
@@ -353,12 +389,8 @@
             .swap-btn, .small-btn, .efficiency-badge, .visual-label, .visual-container, .section-divider, .add-btn-container, .remove-card-btn, .extra-tools, .hint, .raw-data-toggle, .clear-price-btn { 
                 display: none !important; 
             }
-            .raw-data-panel:not(.printing-active) {
-                display: none !important;
-            }
-            .tech-settings, .res-row-info, .res-rows-count-info, .empty-print {
-                display: none !important;
-            }
+            .image-preview { border: 1px solid #eee !important; height: 100px !important; }
+            .image-preview span { display: none; }
             .card { box-shadow: none; border: 1px solid #eee; margin-bottom: 10px; }
             .total-card { background: #eee !important; color: black !important; border: 2px solid #000; }
             input { border: none !important; padding: 2px !important; font-weight: bold; background: transparent; }
@@ -447,6 +479,39 @@
     ];
 
     let printCounter = 0;
+    let activeCardId = null;
+
+    // Глобальный слушатель вставки (Ctrl + V)
+    document.addEventListener('paste', function(e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (const item of items) {
+            if (item.type.indexOf("image") !== -1) {
+                const blob = item.getAsFile();
+                // Если нет активной карточки, берем последнюю или первую
+                const targetId = activeCardId || (printCounter > 0 ? printCounter : null);
+                if (targetId) {
+                    insertImageToCard(targetId, blob);
+                }
+            }
+        }
+    });
+
+    function insertImageToCard(id, file) {
+        const preview = document.getElementById(`preview${id}`);
+        if (!preview) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}">`;
+        }
+        reader.readAsDataURL(file);
+    }
+
+    function handleImage(id) {
+        const fileInput = document.getElementById(`file${id}`);
+        const file = fileInput.files[0];
+        if (file) insertImageToCard(id, file);
+    }
 
     function toggleTool(type) {
         const wrapper = type === 'discount' ? document.getElementById('wrapperDiscount') : document.getElementById('wrapperMarkup');
@@ -473,6 +538,7 @@
         const card = document.getElementById(`card${id}`);
         if (card) {
             card.remove();
+            if (activeCardId === id) activeCardId = null;
             calculate();
         }
     }
@@ -523,6 +589,15 @@
         calculate();
     }
 
+    function setActiveCard(id) {
+        // Убираем подсветку со всех
+        document.querySelectorAll('.print-card').forEach(c => c.classList.remove('active-focus'));
+        // Добавляем текущему
+        activeCardId = id;
+        const activeCard = document.getElementById(`card${id}`);
+        if (activeCard) activeCard.classList.add('active-focus');
+    }
+
     function addNewPrint() {
         printCounter++;
         const id = printCounter;
@@ -530,6 +605,11 @@
         const card = document.createElement('div');
         card.className = 'print-card empty-print';
         card.id = `card${id}`;
+        
+        // Устанавливаем активность при клике на любое поле внутри карточки
+        card.addEventListener('click', () => setActiveCard(id));
+        card.addEventListener('focusin', () => setActiveCard(id));
+
         card.innerHTML = `
             <div class="print-card-header">
                 <input type="text" class="print-title-input" value="Принт ${id}" placeholder="Название принта">
@@ -537,6 +617,14 @@
             </div>
             
             <div class="print-card-body">
+                <div class="image-upload-container">
+                    <label>Макет (Ctrl+V или клик)</label>
+                    <div class="image-preview" id="preview${id}" onclick="document.getElementById('file${id}').click()">
+                        <span>Нажмите или вставьте (Ctrl+V)</span>
+                    </div>
+                    <input type="file" id="file${id}" class="file-input" accept="image/*" onchange="handleImage(${id})">
+                </div>
+
                 <div style="margin-bottom: 15px;">
                     <label>Расположение на изделии</label>
                     <input type="text" id="pos${id}" placeholder="Например: Грудь слева" style="font-size: 14px; padding: 6px 10px;">
@@ -607,6 +695,7 @@
             </div>
         `;
         container.appendChild(card);
+        setActiveCard(id); // Сразу делаем новую карточку активной
     }
 
     function swap(id) {
@@ -725,7 +814,6 @@
                         itemCostInput.value = rawItemCostWithAdjustments.toFixed(1);
                         rawPanel.classList.add('printing-active');
                     } else {
-                        // НОВАЯ ЛОГИКА ОКРУГЛЕНИЯ: Math.round округляет 0.5 вверх, 0.49 вниз
                         finalItemCost = Math.round(rawItemCostWithAdjustments);
                         itemCostInput.value = "";
                         itemCostInput.placeholder = finalItemCost;
